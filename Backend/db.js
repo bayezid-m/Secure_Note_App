@@ -1,16 +1,22 @@
 const { Pool } = require("pg");
-require("dotenv").config();
+const env = require("./config/env");
+const logger = require("./utils/logger");
 
+// SECURITY: Using a connection pool with SSL and timeouts.
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: env.databaseUrl,
+  ssl: env.isProduction ? { rejectUnauthorized: true } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 pool.on("connect", () => {
-  console.log("Connected to PostgreSQL");
+  logger.info("Connected to PostgreSQL");
 });
 
 pool.on("error", (err) => {
-  console.error("Unexpected PostgreSQL error:", err.message);
+  logger.error("Unexpected PostgreSQL pool error", { error: err.message });
 });
 
 module.exports = pool;

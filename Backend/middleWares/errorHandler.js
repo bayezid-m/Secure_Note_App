@@ -1,26 +1,21 @@
+const env = require("../config/env");
+const logger = require("../utils/logger");
+
+// security: Centralized error handling prevents stack traces and internal details from leaking to clients.
 const errorHandler = (err, req, res, next) => {
-  console.error("Server error:", {
-    message: err.message,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-    path: req.originalUrl,
+  logger.error("Unhandled application error", {
+    requestId: req.requestId,
     method: req.method,
-    time: new Date().toISOString(),
+    path: req.originalUrl,
+    error: err.message,
   });
 
-  if (err.code === "23505") {
-    return res.status(409).json({
-      message: "Resource already exists",
-    });
-  }
+  const statusCode = err.statusCode || 500;
 
-  if (err.code === "22P02") {
-    return res.status(400).json({
-      message: "Invalid input format",
-    });
-  }
-
-  return res.status(500).json({
-    message: "Internal server error",
+  return res.status(statusCode).json({
+    message: statusCode === 500 ? "Internal server error" : err.message,
+    requestId: req.requestId,
+    ...(env.nodeEnv !== "production" && { debug: err.message }),
   });
 };
 

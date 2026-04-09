@@ -1,110 +1,99 @@
-const validateRegisterInput = (req, res, next) => {
-    const { email, password } = req.body;
+const { body, param, validationResult } = require("express-validator");
 
-    if (!email || !password) {
-        return res.status(400).json({
-            message: "Email and password are required",
-        });
-    }
+// security: Central validation error formatter avoids inconsistent validation behavior.
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      message: "Validation failed",
+      errors: errors.array().map((err) => ({
+        field: err.path,
+        message: err.msg,
+      })),
+    });
+  }
 
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({
-            message: "Invalid email format",
-        });
-    }
-
-    if (password.length < 8) {
-        return res.status(400).json({
-            message: "Password must be at least 8 characters long",
-        });
-    }
-
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasLowercase = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
-
-    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
-        return res.status(400).json({
-            message:
-                "Password must include uppercase, lowercase, number, and special character",
-        });
-    }
-
-    next();
+  next();
 };
 
-const validateLoginInput = (req, res, next) => {
-    const { email, password } = req.body;
+// security: Registration validation enforces strong password policy and normalized email input.
+const validateRegisterInput = [
+  body("email")
+    .trim()
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail(),
 
-    if (!email || !password) {
-        return res.status(400).json({
-            message: "Email and password are required",
-        });
-    }
+  body("password")
+    .isString()
+    .withMessage("Password must be a string")
+    .isLength({ min: 12, max: 128 })
+    .withMessage("Password must be between 12 and 128 characters")
+    .matches(/[A-Z]/)
+    .withMessage("Password must include at least one uppercase letter")
+    .matches(/[a-z]/)
+    .withMessage("Password must include at least one lowercase letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must include at least one number")
+    .matches(/[^A-Za-z0-9]/)
+    .withMessage("Password must include at least one special character"),
 
-    next();
-};
+  handleValidationErrors,
+];
 
-const validateNoteInput = (req, res, next) => {
-    const { title, content } = req.body;
+// security: Login validation ensures predictable and safe input handling.
+const validateLoginInput = [
+  body("email")
+    .trim()
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail(),
 
-    if (
-        typeof title !== "string" ||
-        typeof content !== "string"
-    ) {
-        return res.status(400).json({
-            message: "Title and content must be in string format",
-        });
-    }
+  body("password")
+    .isString()
+    .withMessage("Password is required")
+    .isLength({ min: 1, max: 128 })
+    .withMessage("Password is required"),
 
-    const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
+  handleValidationErrors,
+];
 
-    if (!trimmedTitle || !trimmedContent) {
-        return res.status(400).json({
-            message: "Title and content are required",
-        });
-    }
+// security: Note validation limits size and trims content to reduce abuse and malformed input.
+const validateNoteInput = [
+  body("title")
+    .isString()
+    .withMessage("Title must be a string")
+    .trim()
+    .notEmpty()
+    .withMessage("Title is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Title must be between 1 and 255 characters"),
 
-    if (trimmedTitle.length > 255) {
-        return res.status(400).json({
-            message: "Title must not exceed 255 characters",
-        });
-    }
+  body("content")
+    .isString()
+    .withMessage("Content must be a string")
+    .trim()
+    .notEmpty()
+    .withMessage("Content is required")
+    .isLength({ min: 1, max: 5000 })
+    .withMessage("Content must be between 1 and 5000 characters"),
 
-    if (trimmedContent.length > 5000) {
-        return res.status(400).json({
-            message: "Content must not exceed 5000 characters",
-        });
-    }
+  handleValidationErrors,
+];
 
-    req.body.title = trimmedTitle;
-    req.body.content = trimmedContent;
+// security: Numeric route parameter validation blocks malformed IDs and abuse cases.
+const validateNoteIdParam = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("Invalid note id"),
 
-    next();
-};
-
-const validateNoteIdParam = (req, res, next) => {
-    const { id } = req.params;
-
-    const noteId = Number(id);
-
-    if (!Number.isInteger(noteId) || noteId <= 0) {
-        return res.status(400).json({
-            message: "Invalid note id",
-        });
-    }
-
-    req.params.id = noteId;
-    next();
-};
+  handleValidationErrors,
+];
 
 module.exports = {
-    validateRegisterInput,
-    validateLoginInput,
-    validateNoteInput,
-    validateNoteIdParam,
+  validateRegisterInput,
+  validateLoginInput,
+  validateNoteInput,
+  validateNoteIdParam,
 };

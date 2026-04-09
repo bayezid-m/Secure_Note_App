@@ -4,11 +4,17 @@ const {
   validateRegisterInput,
   validateLoginInput,
 } = require("../middleWares/validationMiddleware");
-const { authRateLimiter } = require("../middleWares/rateLimiter");
+const {
+  authRateLimiter,
+  registerRateLimiter,
+} = require("../middleWares/rateLimiter");
 
 const router = express.Router();
 
-router.post("/register", validateRegisterInput, register);
+// security: Rate-limit for registration endpoint to reduce automated account creation.
+router.post("/register", registerRateLimiter, validateRegisterInput, register);
+
+// security: Rate-limit for login endpoint to reduce brute-force attacks.
 router.post("/login", authRateLimiter, validateLoginInput, login);
 
 module.exports = router;

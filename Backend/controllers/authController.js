@@ -1,32 +1,54 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const {
-  findUserByEmail,
-  createUser,
-} = require("../model/userModel");
+const env = require("../config/env");
+const logger = require("../utils/logger");
+const { findUserByEmail, createUser } = require("../model/userModel");
+
+// security: JWT with strict claims to make token validation more robust.
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    env.jwtSecret,
+    {
+      expiresIn: env.jwtExpiresIn,
+      issuer: env.jwtIssuer,
+      audience: env.jwtAudience,
+    }
+  );
+};
 
 const register = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email.trim().toLowerCase();
+    const password = req.body.password;
 
-    const mainEmail = email.trim().toLowerCase();
-
-    const existingUser = await findUserByEmail(mainEmail);
+    const existingUser = await findUserByEmail(email);
 
     if (existingUser) {
-      return res.status(409).json({
-        message: "Email is already registered",
-      });
+      // security: Avoids exposing whether extra account details exist beyond duplicate email conflict.
+      return res.status(409).json({ message: "Email is already registered" });
     }
 
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    // security: Strong password hashing with configurable work factor.
+    const passwordHash = await bcrypt.hash(password, env.bcryptRounds);
 
-    const newUser = await createUser(mainEmail, passwordHash);
+    const newUser = await createUser(email, passwordHash);
 
-    res.status(201).json({
+    logger.info("User registered", {
+      requestId: req.requestId,
+      userId: newUser.id,
+      email: newUser.email,
+    });
+
+    return res.status(201).json({
       message: "User registered successfully",
-      user: newUser,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+      },
     });
   } catch (error) {
     next(error);
@@ -35,40 +57,43 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email.trim().toLowerCase();
+    const password = req.body.password;
 
-    const mainEmail = email.trim().toLowerCase();
+    const user = await findUserByEmail(email);
 
-    const user = await findUserByEmail(mainEmail);
-
+    // security: Returns the same generic message for unknown email and wrong password.
     if (!user) {
-      console.warn(`Failed login attempt for email: ${mainEmail}`);
-      return res.status(401).json({
-        message: "Invalid credentials",
+      logger.warn("Failed login attempt", {
+        requestId: req.requestId,
+        email,
+        reason: "user_not_found",
       });
+
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordMatch) {
-      console.warn(`Failed login attempt for email: ${mainEmail}`);
-      return res.status(401).json({
-        message: "Invalid credentials",
+      logger.warn("Failed login attempt", {
+        requestId: req.requestId,
+        email,
+        reason: "invalid_password",
       });
+
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
-      }
-    );
+    const token = generateAccessToken(user);
 
-    res.status(200).json({
+    logger.info("User login successful", {
+      requestId: req.requestId,
+      userId: user.id,
+      email: user.email,
+    });
+
+    return res.status(200).json({
       message: "Login successful",
       token,
     });
