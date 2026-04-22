@@ -30,7 +30,9 @@ const env = {
   jwtIssuer: process.env.JWT_ISSUER,
   jwtAudience: process.env.JWT_AUDIENCE,
   clientUrl: process.env.CLIENT_URL,
-  bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 12,
+  argon2MemoryCost: Number(process.env.ARGON2_MEMORY_COST) || 19456,
+  argon2TimeCost: Number(process.env.ARGON2_TIME_COST) || 2,
+  argon2Parallelism: Number(process.env.ARGON2_PARALLELISM) || 1,
   logLevel: process.env.LOG_LEVEL || "info",
   isProduction: (process.env.NODE_ENV || "development") === "production",
 };

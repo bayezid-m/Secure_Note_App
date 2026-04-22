@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const env = require("../config/env");
 const logger = require("../utils/logger");
@@ -20,6 +20,14 @@ const generateAccessToken = (user) => {
   );
 };
 
+// OWASP-recommended baseline configuration for Argon2id
+const ARGON2_OPTIONS = {
+  type: argon2.argon2id,
+  memoryCost: env.argon2MemoryCost,
+  timeCost: env.argon2TimeCost,
+  parallelism: env.argon2Parallelism,
+};
+
 const register = async (req, res, next) => {
   try {
     const email = req.body.email.trim().toLowerCase();
@@ -32,8 +40,8 @@ const register = async (req, res, next) => {
       return res.status(409).json({ message: "Email is already registered" });
     }
 
-    // security: Strong password hashing with configurable work factor.
-    const passwordHash = await bcrypt.hash(password, env.bcryptRounds);
+    // security: Strong password hashing with Argon2id password hashing.
+    const passwordHash = await argon2.hash(password, ARGON2_OPTIONS);
 
     const newUser = await createUser(email, passwordHash);
 
@@ -73,7 +81,11 @@ const login = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+    // OWASP: secure password verification
+    const isPasswordMatch = await argon2.verify(
+      user.password_hash,
+      password
+    );
 
     if (!isPasswordMatch) {
       logger.warn("Failed login attempt", {

@@ -8,7 +8,7 @@
 6. express-rate-limit → brute-force protection
 7. cors → allow frontend to talk to backend later
 8. nodemon → restarts server automatically during development
-9.  express-validator – Input validation and sanitization
+9. express-validator – Input validation and sanitization
 10. morgan – HTTP request logging
 11. compression – Response compression
 12. cookie-parser – Cookie parsing (for future improvements)
@@ -30,6 +30,7 @@ Backend/
       errorHandler.js
       rateLimiter.js
       validationMiddleware.js
+      requestIdMiddleware.js
 
     model/
       userModel.js
@@ -56,7 +57,7 @@ Backend/
 4. Structured logging using morgan and custom logger
 5. Request tracing using unique request IDs
 6. Centralized error handling to prevent sensitive information leakage
-7. Password hashing using bcrypt
+7. Password hashing with Argon2id
 8. JWT authentication with strict verification
 9. Environment variable validation to prevent misconfiguration
 
@@ -70,7 +71,7 @@ Backend/
 
 ## Cryptographic Failures
 
-1. Passwords hashed using bcrypt
+1. Passwords hashed using Argon2id
 2. JWT used for secure authentication
 3.  Secrets stored in environment variables
 
@@ -98,12 +99,12 @@ Backend/
 
 1. Strong password policy
 2. Secure login flow
-3. Generic error messages
+3. Centralized error messages
 4. Rate limiting for brute-force protection
 
 ## Security Logging and Monitoring Failures
 
-1. Basic logging implemented for: failed login attempts, note operations
+1. Centralized logging implemented for: failed login attempts, note operations
 
 ## Cross-Site Scripting (XSS)
 
@@ -118,7 +119,7 @@ Backend/
 
 # API Endpoints
 
-## 🔐 Auth
+## Auth
 
 - **POST /api/auth/register**  
   Register new user  
