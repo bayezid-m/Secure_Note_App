@@ -1,0 +1,34 @@
+body {
+  background: #f8f9fa;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.auth-card,
+.hero-card,
+.note-card,
+.empty-state {
+  border-radius: 1rem;
+}
+
+.feature-box {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.note-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #495057;
+}
+
+.preserve-line-breaks {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
