@@ -49,7 +49,6 @@ const validateLoginInput = [
     .isEmail()
     .withMessage("Invalid email format")
     .normalizeEmail(),
-
   body("password")
     .isString()
     .withMessage("Password is required")

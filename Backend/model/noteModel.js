@@ -7,7 +7,6 @@ const createNote = async (userId, title, content) => {
     VALUES ($1, $2, $3)
     RETURNING id, user_id, title, content, created_at, updated_at
   `;
-
   const result = await pool.query(query, [userId, title, content]);
   return result.rows[0];
 };
@@ -33,7 +32,6 @@ const getNoteByIdAndUserId = async (noteId, userId) => {
     WHERE id = $1 AND user_id = $2
     LIMIT 1
   `;
-
   const result = await pool.query(query, [noteId, userId]);
   return result.rows[0];
 };
